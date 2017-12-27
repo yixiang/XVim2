@@ -646,8 +646,38 @@
                                      (int)((float)lineNumber * 100.0 / (float)numberOfLines), columnNumber + 1];
 
         [window statusMessage:text];
+       [self openLineInCS:documentURL lineNumber:lineNumber];
     }
     return nil;
+}
+
+- (void)openLineInCS:(NSURL *)fileURL lineNumber:(long long)lineNumber {
+  NSString *depotPath = [self depotPathFromLocalPath:fileURL.path];
+  if (depotPath == nil) {
+    return;
+  }
+  NSURL *csURL = [self csURLForFileWithDepotPath:depotPath line:(NSUInteger)lineNumber];
+  if (csURL == nil) {
+    return;
+  }
+  [[NSWorkspace sharedWorkspace] openURL:csURL];
+}
+
+- (NSString *)depotPathFromLocalPath:(NSString *)localPath {
+  NSRange rangeOfGoogle3 = [localPath rangeOfString:@"google3"];
+  if (rangeOfGoogle3.location == NSNotFound) {
+    return nil;
+  }
+  NSString *google3 = [localPath substringFromIndex:rangeOfGoogle3.location];
+  NSString *depotPath = [NSString stringWithFormat:@"//depot/%@", google3];
+  return depotPath;
+}
+
+- (NSURL *)csURLForFileWithDepotPath:(NSString *)depotPath line:(NSUInteger)line {
+  static NSString *const kCsHost = @"https://cs.corp.google.com";
+  NSString *csURLString = [NSString stringWithFormat:@"%@/#piper/%@&l=%tu", kCsHost, depotPath, line];
+  NSURL *csURL = [NSURL URLWithString:csURLString];
+  return csURL;
 }
 
 - (XVimEvaluator*)ForwardDelete { return [self x]; }
